@@ -1,5 +1,7 @@
 using System.Text;
-
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
 namespace FolderWatcher.Service;
 using System.Text.RegularExpressions; // Добавьте в начало файла
@@ -36,6 +38,14 @@ public class Worker : BackgroundService
 
     private void StartWatchers()
     {
+        // Останавливаем старые наблюдатели
+        foreach (var w in _watchers) 
+        { 
+            w.EnableRaisingEvents = false; 
+            w.Dispose(); 
+        }
+
+        _watchers.Clear();        
         foreach (var w in _watchers) { w.EnableRaisingEvents = false; w.Dispose(); }
         _watchers.Clear();
 
@@ -131,10 +141,24 @@ private void ProcessFile(string filePath)
         WriteDotFile(parseResult.Components, parseResult.Nets, outFolder, baseName);   // если ещё не добавлен – см. полную версию
 
         _logger.LogInformation($"Обработан: {Path.GetFileName(filePath)} -> out/{baseName}_net.txt + out/{baseName}_bom.txt + out/{baseName}_net.dot + out/{baseName}_orig.txt");
+        string fileName = Path.GetFileName(filePath);
+            
+            // Вызываем красивое уведомление в Windows
+            FolderWatcher.Program.ShowNotification(
+                "Файл успешно обработан", 
+                $"Конвертация файла {fileName} завершена.", 
+                ToolTipIcon.Info
+            );        
     }
     catch (Exception ex)
     {
         _logger.LogError($"Ошибка при обработке {filePath}: {ex.Message}");
+        // Вызываем уведомление об ошибке (сменится иконка на красный крестик)
+        FolderWatcher.Program.ShowNotification(
+            "Ошибка конвертации", 
+            $"Не удалось обработать файл. Ошибка: {ex.Message}", 
+            ToolTipIcon.Error
+        );        
     }
 }
 

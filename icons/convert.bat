@@ -1,0 +1,1 @@
+magick.exe -background transparent -define 'icon:auto-resize=16,24,32,64' Wiki_Netlist_Logo.png netlists.ico
